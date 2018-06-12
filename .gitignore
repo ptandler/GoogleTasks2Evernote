@@ -1,0 +1,10 @@
+/node_modules/
+
+# data and test data
+/GoogleTasks.json
+*.enex
+/Evernote/
+
+# Idea
+/GoogleTasks2Evernote.iml
+/.idea/

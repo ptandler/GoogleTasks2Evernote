@@ -1,0 +1,11 @@
+{
+  "name": "googletasks2evernote",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "linkifyjs": "^2.1.6",
+    "lodash": "^4.17.5",
+    "yargs": "^11.0.0"
+  }
+}
