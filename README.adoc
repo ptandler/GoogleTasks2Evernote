@@ -1,17 +1,31 @@
 # Google Task2Evernote
 
 This is a tiny node.js script that converts a GoogleTasks.json exported
-from Google Tasks through the https://takeout.google.com/settings/takeout[Google Takeout].
+from Google Tasks through the https://takeout.google.com/settings/takeout[Google Takeout] to the Evernote Export format `*.enex`.
+
+
+## REQUIREMENTS
+
+You need node.js installed.
 
 ## INSTALLATION
 
-Install required node modules first:
+Install required node modules first (exec this in the directory where the `convert.js` and `package.json` is located):
 
 `npm i`
 
 ## USAGE
 
-1. Place the GoogleTasks.json in this directory.
-2. Run `node convert.js`
-3. The Output is created in dir `Evernote`, one file per task list.
-4. Import the genereted *.enex in
+0. Get your tasks from https://takeout.google.com/settings/takeout[Google Takeout]
+1. Place the generated `GoogleTasks.json` in this directory
+2. You might wand to look at the top of convert.js script, there are a couple of *options* defined which you can use to adjust the behaviour to your needs, e.g.
+  - define if you wand all task lists written to *one large enex file* with tags added for every list (if `exportListAsTag = true`)
+  - or generate a *enex file for each task list*
+  - you might want to set the `listTagPrefix` to `""`
+  - you can add a prefix for the "status" tag (`statusTagPrefix`)
+  - do you want to import also hidden (i.e. deleted) tasks (if `hiddenTag` is defined)
+  - scan the _notes_ (not title) for URLs / links and convert them to clickable links (`linkifyNotes = true`). This uses the handly http://soapbox.github.io/linkifyjs/[linkify plugin].
+  - linkify can also convert hashtags defined in the twitter style as `#mySpecialTag`. You can enable this if you have hashtags in your _notes_ (not title) to convert these to Evernote tags. (`scanHashTags = true`)
+3. Run `node convert.js`
+4. The Output is created in dir `Evernote`, one file per task list
+5. Import the genereted `*.enex` in Evernote. (I think, currently import is not avaliable in the web version of Evernote, so you have to you the desktop version > File > Import > Evernote export file.)

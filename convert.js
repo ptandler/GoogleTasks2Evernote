@@ -2,24 +2,26 @@
 const inFile = "./GoogleTasks.json";
 const outPath = "Evernote";
 const outFile = "./GoogleTasks.enex";
-const exportGoogleTaskSelfLink = false; // export task.selfLink as
-const exportListAsTag = false; // if false, export each list as separate notebook .enex in outFile
+const exportGoogleTaskSelfLink = false; // export task.selfLink
+const exportListAsTag = true; // if false, export each list as separate notebook .enex in outFile
 const exportDate = formatTimestamp((new Date()).toISOString());
 const listTagPrefix = "GoogleTasks/" + exportDate + "/";
-const hiddenTag = null; // "hidden";
+// const listTagPrefix = "";
+const hiddenTag = "hidden";
+// const hiddenTag = null;
 const completedTag = "completed";
 const statusTagPrefix = "status:";
 const scanHashTags = true;
-const linkifyNotes = false;
+const linkifyNotes = true;
 const linkifyHashTags = true;
-const debugTaskIdTag = true;
+const debugTaskIdTag = false;
 
 // required modules
 const fs = require('fs');
 const path = require('path');
 const linkify = require('linkifyjs'); // http://soapbox.github.io/linkifyjs/
 const linkifyHtml = require('linkifyjs/html');
-if (linkifyNotes && linkifyHashTags) {
+if (scanHashTags || (linkifyNotes && linkifyHashTags)) {
 	require('linkifyjs/plugins/hashtag')(linkify);
 }
 const taskAttributes = {};
@@ -160,7 +162,7 @@ function exportTask(task, tag) {
 	}
 	if (task.links) {
 		for (let link of task.links) {
-			notes += `<p><a href='${link.link}' target="_blank">${link.description} (${link.type})</a></p>\n`;
+			notes += `<p><a href='${link.link}' target="_blank">${escapeHtml(link.description)} (${escapeHtml(link.type)})</a></p>\n`;
 		}
 	}
 	result += `\t\t<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
@@ -187,7 +189,7 @@ function exportTask(task, tag) {
 		result += `\t\t<tag>${escapeHtml(completedTag)}</tag>\n`;
 	}
 	if (task.status) {
-		result += `\t\t<tag>${statusTagPrefix ? escapeHtml(statusTagPrefix) : ""}${task.status}</tag>\n`;
+		result += `\t\t<tag>${statusTagPrefix ? escapeHtml(statusTagPrefix) : ""}${escapeHtml(task.status)}</tag>\n`;
 	}
 	if (task.notes && scanHashTags) {
 		let hashtags = linkify.find(task.notes);
