@@ -5,8 +5,8 @@ const outFile = "./GoogleTasks.enex";
 const exportGoogleTaskSelfLink = false; // export task.selfLink
 const exportListAsTag = true; // if false, export each list as separate notebook .enex in outFile
 const exportDate = formatTimestamp((new Date()).toISOString());
-const listTagPrefix = "GoogleTasks/" + exportDate + "/";
-// const listTagPrefix = "";
+// const listTagPrefix = "GoogleTasks/" + exportDate + "/";
+const listTagPrefix = "";
 // const hiddenTag = "hidden";
 const hiddenTag = null;
 const completedTag = "completed";
@@ -176,28 +176,28 @@ function exportTask(task, tag) {
 
 	// tag (multiple possible) - use this to tag the google task list (if passed as argument)
 	if (tag) {
-		result += `\t\t<tag>${listTagPrefix ? escapeHtml(listTagPrefix) : ""}${escapeHtml(tag)}</tag>\n`;
+		result += `\t\t<tag>${listTagPrefix ? formatTag(listTagPrefix) : ""}${formatTag(tag)}</tag>\n`;
 	}
 	if (debugTaskIdTag) {
 		// result += `\t\t<tag>id-${task.id}</tag>\n`;
 		result += `\t\t<tag>task-${taskCounter}</tag>\n`;
 	}
 	if (task.hidden) {
-		result += `\t\t<tag>${escapeHtml(hiddenTag)}</tag>\n`;
+		result += `\t\t<tag>${formatTag(hiddenTag)}</tag>\n`;
 	}
 	if (task.completed) {
-		result += `\t\t<tag>${escapeHtml(completedTag)}</tag>\n`;
+		result += `\t\t<tag>${formatTag(completedTag)}</tag>\n`;
 	}
 	if (task.status) {
-		result += `\t\t<tag>${statusTagPrefix ? escapeHtml(statusTagPrefix) : ""}${escapeHtml(task.status)}</tag>\n`;
+		result += `\t\t<tag>${statusTagPrefix ? formatTag(statusTagPrefix) : ""}${formatTag(task.status)}</tag>\n`;
 	}
 	if (task.notes && scanHashTags) {
 		let hashtags = linkify.find(task.notes);
 		// console.dir(hashtags);
 		for (let hash of hashtags) {
 			if (hash.type === "hashtag") {
-				result += `\t\t<tag>${listTagPrefix ? 
-					escapeHtml(listTagPrefix) : ""}tag/${escapeHtml(hash.value.substr(1))}</tag>\n`;
+				result += `\t\t<tag>${listTagPrefix ?
+					formatTag(listTagPrefix) : ""}tag/${formatTag(hash.value.substr(1))}</tag>\n`;
 			}
 		}
 	}
@@ -239,4 +239,14 @@ function escapeHtml(string) {
 
 function formatTimestamp(string) {
 	return escapeHtml(string.replace(/[:.\-]/g, ""));
+}
+
+/**
+ * escapeHTML and ensure that the tag name doesn't contain a "," character
+ * as far as I've tested, this is the only forbidden character for a tag name
+ *
+ * @param string
+ */
+function formatTag(string) {
+	return escapeHtml(string.replace(/,/g, ";"));
 }
