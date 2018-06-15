@@ -1,15 +1,17 @@
 # Google Task2Evernote
 
 This is a tiny node.js script that converts a GoogleTasks.json exported
-from Google Tasks through the link:https://takeout.google.com/settings/takeout[Google Takeout].
+from Google Tasks through the https://takeout.google.com/settings/takeout[Google Takeout].
 
 ## INSTALLATION
+
+Install required node modules first:
 
 `npm i`
 
 ## USAGE
 
 1. Place the GoogleTasks.json in this directory.
-2. Run `node app.js`
+2. Run `node convert.js`
 3. The Output is created in dir `Evernote`, one file per task list.
 4. Import the genereted *.enex in

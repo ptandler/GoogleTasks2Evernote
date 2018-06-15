@@ -3,21 +3,23 @@ const inFile = "./GoogleTasks.json";
 const outPath = "Evernote";
 const outFile = "./GoogleTasks.enex";
 const exportGoogleTaskSelfLink = false; // export task.selfLink as
-const exportListAsTag = true; // if false, export each list as separate notebook .enex in outFile
+const exportListAsTag = false; // if false, export each list as separate notebook .enex in outFile
 const exportDate = formatTimestamp((new Date()).toISOString());
 const listTagPrefix = "GoogleTasks/" + exportDate + "/";
 const hiddenTag = null; // "hidden";
 const completedTag = "completed";
 const statusTagPrefix = "status:";
 const scanHashTags = true;
+const linkifyNotes = false;
 const linkifyHashTags = true;
+const debugTaskIdTag = true;
 
 // required modules
 const fs = require('fs');
 const path = require('path');
+const linkify = require('linkifyjs'); // http://soapbox.github.io/linkifyjs/
 const linkifyHtml = require('linkifyjs/html');
-const linkify = require('linkifyjs');
-if (linkifyHashTags) {
+if (linkifyNotes && linkifyHashTags) {
 	require('linkifyjs/plugins/hashtag')(linkify);
 }
 const taskAttributes = {};
@@ -62,7 +64,7 @@ function exportTaskLists(lists) {
 `;
 
 		data += "<en-export export-date=\"" + exportDate + "\" application=\"Evernote/Windows\" version=\"6.x\">\n";
-		let tasks = list.items;
+		let tasks = list.items, oldTaskCounter = taskCounter;
 		if (tasks) {
 			for (let j in tasks) {
 				data += exportTask(tasks[j])
@@ -106,16 +108,22 @@ function exportTaskListsAsTags(lists) {
 
 function exportTask(task, tag) {
 	/*
-      "status" : "needsAction",
+	  "id": "MDQ4NDU5OTAwMzQxNTcwMjM1OTU6Njk3NDQxMDY0OjUzOTA2ODI5OTkxMTIxNjg",
+	  "title": "...",
+	  "notes": "....",
+	  "status" : "needsAction",
       "status" : "completed",
       "due" : "2018-03-17T00:00:00.000Z",
-      "completed" : "2018-03-17T18:24:57.000Z"
-      "hidden" : true
+      "updated" : "2018-03-17T18:24:57.000Z",
+      "completed" : "2018-03-17T18:24:57.000Z",
+      "hidden" : true, // = deleted
+	  "parent": "MDQ4NDU5OTAwMzQxNTcwMjM1OTU6Njk3NDQxMDY0OjUzOTA2ODI5OTkxMTIxNjg", // used by sub tasks to identify parent task
       "links" : [ {
         "type" : "email",
         "description" : "Some Email Topic",
         "link" : "https://mail.google.com/mail/#all/160b33baebc3eaef"
-      } ]
+      } ],
+      "selfLink" : "https://www.googleapis.com/tasks/v1/lists/MDQ4NDU5OTAwMzQxNTcwMjM1OTU6Njk3NDQxMDY0OjA/tasks/MDQ4NDU5OTAwMzQxNTcwMjM1OTU6Njk3NDQxMDY0OjE5MjQyNzgyMzE",
 	 */
 	// first collect all task attributes used by Google Task export
 	for (let attribute in task) {
@@ -141,7 +149,14 @@ function exportTask(task, tag) {
 	result += "</title>\n";
 	let notes = "";
 	if (task.notes) {
-		notes = linkifyHtml(escapeHtml(task.notes), {nl2br: true, className: "", target: ""}).replace(/<br>/g, "<br/>"); //.replace(/\n/g, "<br/>");
+		let html = escapeHtml(task.notes);
+		if (linkifyNotes) {
+			notes = linkifyHtml(html, {nl2br: true, className: "", target: "",
+				format: (value, type) => escapeHtml(value)
+			}).replace(/<br>/g, "<br/>\n");
+		} else {
+			notes = html.replace(/\n/g, "<br/>\n");
+		}
 	}
 	if (task.links) {
 		for (let link of task.links) {
@@ -159,23 +174,28 @@ function exportTask(task, tag) {
 
 	// tag (multiple possible) - use this to tag the google task list (if passed as argument)
 	if (tag) {
-		result += `\t\t<tag>${listTagPrefix ? listTagPrefix : ""}${tag}</tag>\n`;
+		result += `\t\t<tag>${listTagPrefix ? escapeHtml(listTagPrefix) : ""}${escapeHtml(tag)}</tag>\n`;
+	}
+	if (debugTaskIdTag) {
+		// result += `\t\t<tag>id-${task.id}</tag>\n`;
+		result += `\t\t<tag>task-${taskCounter}</tag>\n`;
 	}
 	if (task.hidden) {
-		result += `\t\t<tag>${hiddenTag}</tag>\n`;
+		result += `\t\t<tag>${escapeHtml(hiddenTag)}</tag>\n`;
 	}
 	if (task.completed) {
-		result += `\t\t<tag>${completedTag}</tag>\n`;
+		result += `\t\t<tag>${escapeHtml(completedTag)}</tag>\n`;
 	}
 	if (task.status) {
-		result += `\t\t<tag>${statusTagPrefix ? statusTagPrefix : ""}${task.status}</tag>\n`;
+		result += `\t\t<tag>${statusTagPrefix ? escapeHtml(statusTagPrefix) : ""}${task.status}</tag>\n`;
 	}
 	if (task.notes && scanHashTags) {
 		let hashtags = linkify.find(task.notes);
 		// console.dir(hashtags);
 		for (let hash of hashtags) {
 			if (hash.type === "hashtag") {
-				result += `\t\t<tag>${listTagPrefix ? listTagPrefix : ""}tag/${hash.value.substr(1)}</tag>\n`;
+				result += `\t\t<tag>${listTagPrefix ? 
+					escapeHtml(listTagPrefix) : ""}tag/${escapeHtml(hash.value.substr(1))}</tag>\n`;
 			}
 		}
 	}
@@ -187,11 +207,9 @@ function exportTask(task, tag) {
 		result += `<reminder-time>${formatTimestamp(task.due)}</reminder-time>\n`;
 	}
 	if (task.completed) {
-		if (!task.due) {
-			// if no due date is specified, take the completed date
-			result += `<reminder-order>${formatTimestamp(task.completed)}</reminder-order>\n`;
-			result += `<reminder-time>${formatTimestamp(task.completed)}</reminder-time>\n`;
-		}
+		// if no due date is specified, take the completed date
+		result += `<reminder-order>${formatTimestamp(task.due ? task.due : task.completed)}</reminder-order>\n`;
+		result += `<reminder-time>${formatTimestamp(task.due ? task.due : task.completed)}</reminder-time>\n`;
 		result += `<reminder-done-time>${formatTimestamp(task.completed)}</reminder-done-time>\n`;
 	}
 
@@ -218,5 +236,5 @@ function escapeHtml(string) {
 }
 
 function formatTimestamp(string) {
-	return string.replace(/[:.\-]/g, "");
+	return escapeHtml(string.replace(/[:.\-]/g, ""));
 }
